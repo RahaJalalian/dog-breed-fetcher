@@ -25,11 +25,39 @@ public class DogApiBreedFetcher implements BreedFetcher {
      */
     @Override
     public List<String> getSubBreeds(String breed) {
-        // TODO Task 1: Complete this method based on its provided documentation
-        //      and the documentation for the dog.ceo API. You may find it helpful
-        //      to refer to the examples of using OkHttpClient from the last lab,
-        //      as well as the code for parsing JSON responses.
-        // return statement included so that the starter code can compile and run.
-        return new ArrayList<>();
+        String url = "https://dog.ceo/api/breed/" + breed + "/list";
+
+        try {
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("Accept", "application/json")
+                    .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                // Read body as string (like in GetExample)
+                String body = Objects.requireNonNull(response.body(), "Empty response body").string();
+
+                // Parse JSON
+                JSONObject json = new JSONObject(body);
+                String status = json.optString("status", "");
+
+                // Happy path
+                if ("success".equals(status)) {
+                    JSONArray arr = json.getJSONArray("message");
+                    List<String> subBreeds = new ArrayList<>(arr.length());
+                    for (int i = 0; i < arr.length(); i++) {
+                        subBreeds.add(arr.getString(i));
+                    }
+                    return subBreeds;
+                }
+
+                // Error path from API (e.g., unknown breed → code:404)
+                String msg = json.optString("message", "Dog API error");
+                throw new BreedNotFoundException(msg);
+            }
+        } catch (Exception e) {
+            // Any IOException/JSON error → unify as BreedNotFoundException (per class doc)
+            throw new BreedNotFoundException("Failed to fetch sub-breeds for " + breed + ": " + e.getMessage());
+        }
     }
 }
