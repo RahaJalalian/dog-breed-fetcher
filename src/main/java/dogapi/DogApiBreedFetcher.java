@@ -34,14 +34,10 @@ public class DogApiBreedFetcher implements BreedFetcher {
                     .build();
 
             try (Response response = client.newCall(request).execute()) {
-                // Read body as string (like in GetExample)
                 String body = Objects.requireNonNull(response.body(), "Empty response body").string();
-
-                // Parse JSON
                 JSONObject json = new JSONObject(body);
                 String status = json.optString("status", "");
 
-                // Happy path
                 if ("success".equals(status)) {
                     JSONArray arr = json.getJSONArray("message");
                     List<String> subBreeds = new ArrayList<>(arr.length());
@@ -51,12 +47,10 @@ public class DogApiBreedFetcher implements BreedFetcher {
                     return subBreeds;
                 }
 
-                // Error path from API (e.g., unknown breed → code:404)
                 String msg = json.optString("message", "Dog API error");
                 throw new BreedNotFoundException(msg);
             }
-        } catch (Exception e) {
-            // Any IOException/JSON error → unify as BreedNotFoundException (per class doc)
+        } catch (IOException e) {
             throw new BreedNotFoundException("Failed to fetch sub-breeds for " + breed + ": " + e.getMessage());
         }
     }
